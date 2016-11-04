@@ -10,7 +10,7 @@ set :rbenv_prefix, "sudo env RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fe
 set :rbenv_map_bins, %w{rake gem bundle ruby rails chef-client}
 set :rbenv_roles, :all
 
-set :chef_zero_version, "5.1.0"
+set :chef_version, "12.15.19"
 set :local_chef_zero_cookbooks, -> { File.join( Dir.pwd, "config", "cookbooks") }
 set :chef_zero_path, -> { File.join(fetch(:deploy_to), "chef") }
 set :chef_zero_cache_path, -> { File.join(fetch(:chef_zero_path), "cache") }
@@ -131,7 +131,7 @@ namespace :"chef-zero" do
   task :install do
     on roles(:all) do |host|
       on "#{host}" do
-        execute :gem, "install chef-zero -v #{fetch(:chef_zero_version)}"
+        execute :gem, "install chef -v #{fetch(:chef_version)}"
         # setup directories
         dirs = [ fetch(:chef_zero_path), fetch(:chef_zero_cache_path), fetch(:chef_zero_config_path), fetch(:chef_zero_roles_path), fetch(:chef_zero_environments_path) ].uniq
         execute "mkdir -p #{dirs.map { |x| x.dump }.join(" ")}"
