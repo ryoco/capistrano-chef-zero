@@ -4,12 +4,6 @@ require 'sshkit/dsl'
 include SSHKit::DSL
 
 
-set :rbenv_type, :user
-set :rbenv_ruby, '2.3.1'
-set :rbenv_prefix, "sudo env RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"
-set :rbenv_map_bins, %w{rake gem bundle ruby rails chef-client}
-set :rbenv_roles, :all
-
 set :chef_version, "12.15.19"
 set :local_chef_zero_cookbooks, -> { File.join( Dir.pwd, "config", "cookbooks") }
 set :chef_zero_path, -> { File.join(fetch(:deploy_to), "chef") }
