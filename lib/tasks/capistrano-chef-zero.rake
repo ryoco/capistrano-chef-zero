@@ -1,6 +1,6 @@
 require "json"
-require 'sshkit'
-require 'sshkit/dsl'
+require "sshkit"
+require "sshkit/dsl"
 include SSHKit::DSL
 
 
