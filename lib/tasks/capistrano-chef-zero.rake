@@ -4,29 +4,6 @@ require "sshkit/dsl"
 include SSHKit::DSL
 
 
-set :chef_version, "12.15.19"
-set :local_chef_zero_cookbooks, -> { File.join( Dir.pwd, "config", "cookbooks") }
-set :chef_zero_path, -> { File.join(fetch(:deploy_to), "chef") }
-set :chef_zero_cache_path, -> { File.join(fetch(:chef_zero_path), "cache") }
-set :chef_zero_config_path, -> { File.join(fetch(:chef_zero_path), "config") }
-set :chef_zero_cookbooks_path, -> { File.join(fetch(:chef_zero_path), "cookbooks") }
-set :chef_zero_cookbooks_path_list, -> {[
-  fetch(:chef_zero_cookbooks_path),
-]}
-set :chef_zero_data_bags_path, -> { File.join(cfetch(:chef_zero_path), "data_bags") }
-set :chef_zero_roles_path, -> { File.join(fetch(:chef_zero_path), "roles") }
-set :chef_zero_environments_path, -> { File.join(fetch(:chef_zero_path), "environments") }
-set :chef_zero_config_file, -> { File.join(fetch(:chef_zero_config_path), "config.rb") }
-set :chef_zero_attributes_file, -> { File.join(fetch(:chef_zero_config_path), "config.json") }
-
-set :chef_zero_attributes, {}
-set :chef_zero_run_list, []
-set :chef_zero_host_attributes, {}
-set :chef_zero_host_run_list, {}
-set :chef_zero_role_attributes, {}
-set :chef_zero_role_run_list, {}
-
-
 # TODO
 def git_repository(repo, branch, dir)
   execute "mkdir -p #{dir}"
@@ -110,7 +87,7 @@ def _generate_host_attributes(host, options={})
 end
 
 
-desc "Do all tasks"
+desc "Do all tasks."
 task :"chef-zero" => "chef-zero:default"
 namespace :"chef-zero" do
   desc "Do all "
@@ -121,45 +98,70 @@ namespace :"chef-zero" do
       invoke "chef-zero:#{task}"
     end
   end
-  desc "Install "
+  desc "Install chef."
   task :install do
-    on roles(:all) do |host|
-      on "#{host}" do
-        execute :gem, "install chef -v #{fetch(:chef_version)}"
-        # setup directories
-        dirs = [ fetch(:chef_zero_path), fetch(:chef_zero_cache_path), fetch(:chef_zero_config_path), fetch(:chef_zero_roles_path), fetch(:chef_zero_environments_path) ].uniq
-        execute "mkdir -p #{dirs.map { |x| x.dump }.join(" ")}"
-      end
+    on release_roles(fetch(:chef_zero_roles)) do
+      execute :gem, "install chef -v #{fetch(:chef_version)}"
+      # setup directories
+      dirs = [ fetch(:chef_zero_path), fetch(:chef_zero_cache_path), fetch(:chef_zero_config_path), fetch(:chef_zero_roles_path), fetch(:chef_zero_environments_path) ].uniq
+      execute "mkdir -p #{dirs.map { |x| x.dump }.join(" ")}"
     end
   end
   desc "Update "
   task :update do
-    on roles(:all) do |host|
-      on "#{host}" do
-        fetch(:chef_zero_cookbooks).each do |k, v|
-          if v.key?(:cookbook_name)
-            v.merge!(deploy_dir: File.join(fetch(:chef_zero_path), "cookbooks", v[:cookbook_name]))
-          else
-            append(:chef_zero_cookbooks_path_list, File.join(fetch(:chef_zero_path), k))
-            v.merge!(deploy_dir: File.join(fetch(:chef_zero_path), k))
-          end
+    on release_roles(fetch(:chef_zero_roles)) do
+      fetch(:chef_zero_cookbooks).each do |k, v|
+        if v.key?(:cookbook_name)
+          v.merge!(deploy_dir: File.join(fetch(:chef_zero_path), "cookbooks", v[:cookbook_name]))
+        else
+          append(:chef_zero_cookbooks_path_list, File.join(fetch(:chef_zero_path), k))
+          v.merge!(deploy_dir: File.join(fetch(:chef_zero_path), k))
         end
-        update_config
-        update_cookbooks
-        update_environments(fetch(:rails_env))
       end
+      update_config
+      update_cookbooks
+      update_environments(fetch(:rails_env))
     end
-    on roles(:all) do |host|
+    on release_roles(fetch(:chef_zero_roles)) do |host|
       host.roles_array.uniq.map { |role| update_roles(role) }
       update_attributes(host)
     end
   end
   desc "Execute chef-client command."
   task :deploy do
-    on roles(:all) do |host|
-      on "#{host}" do
-        execute :"chef-client", "-z -j #{fetch(:chef_zero_attributes_file)} -c #{fetch(:chef_zero_config_file)} -E #{fetch(:rails_env)}"
-      end
+    on release_roles(fetch(:chef_zero_roles)) do
+      execute :"chef-client", "-z -j #{fetch(:chef_zero_attributes_file)} -c #{fetch(:chef_zero_config_file)} -E #{fetch(:rails_env)}"
     end
+  end
+end
+
+
+namespace :load do
+  task :defaults do
+
+    set :chef_version, "12.15.19"
+
+    set :chef_zero_roles, fetch(:chef_zero_roles, :all)
+
+    set :local_chef_zero_cookbooks, -> { File.join( Dir.pwd, "config", "cookbooks") }
+    set :chef_zero_path, -> { File.join(fetch(:deploy_to), "chef") }
+    set :chef_zero_cache_path, -> { File.join(fetch(:chef_zero_path), "cache") }
+    set :chef_zero_config_path, -> { File.join(fetch(:chef_zero_path), "config") }
+    set :chef_zero_cookbooks_path, -> { File.join(fetch(:chef_zero_path), "cookbooks") }
+    set :chef_zero_cookbooks_path_list, -> {[
+      fetch(:chef_zero_cookbooks_path),
+    ]}
+    set :chef_zero_data_bags_path, -> { File.join(cfetch(:chef_zero_path), "data_bags") }
+    set :chef_zero_roles_path, -> { File.join(fetch(:chef_zero_path), "roles") }
+    set :chef_zero_environments_path, -> { File.join(fetch(:chef_zero_path), "environments") }
+    set :chef_zero_config_file, -> { File.join(fetch(:chef_zero_config_path), "config.rb") }
+    set :chef_zero_attributes_file, -> { File.join(fetch(:chef_zero_config_path), "config.json") }
+    set :chef_zero_attributes, {}
+    set :chef_zero_run_list, []
+    set :chef_zero_host_attributes, {}
+    set :chef_zero_host_run_list, {}
+    set :chef_zero_role_attributes, {}
+    set :chef_zero_role_run_list, {}
+
   end
 end
