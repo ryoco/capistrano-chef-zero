@@ -6,7 +6,6 @@ include SSHKit::DSL
 
 # TODO
 def git_repository(repo, branch, dir)
-  execute "mkdir -p #{dir}"
   execute :rm, "-rf #{dir}"
   execute :git, "clone -b #{branch} '#{repo}' #{dir}"
 end
