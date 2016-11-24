@@ -100,7 +100,9 @@ namespace :"chef-zero" do
   desc "Install chef."
   task :install do
     on release_roles(fetch(:chef_zero_roles)) do
-      execute :gem, "install chef -v #{fetch(:chef_version)}"
+      if !execute(:gem, "list chef -i -v #{fetch(:chef_version)}", raise_on_non_zero_exit: false)
+        execute :gem, "install chef -v #{fetch(:chef_version)}"
+      end
       # setup directories
       dirs = [ fetch(:chef_zero_path), fetch(:chef_zero_cache_path), fetch(:chef_zero_config_path), fetch(:chef_zero_roles_path), fetch(:chef_zero_environments_path) ].uniq
       execute "mkdir -p #{dirs.map { |x| x.dump }.join(" ")}"
